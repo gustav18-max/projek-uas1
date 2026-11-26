@@ -323,7 +323,190 @@ void urutPorsi() {
 }
 
 // ==========================================
-// PROGRAM UTAMA (SEMENTARA MENU 1-4)
+// BUBBLE SORT (URUT RESI)
+// ==========================================
+void sortResi() {
+    for (int i = 0; i < jumlah - 1; i++) {
+        bool tukar = false;
+        for (int j = 0; j < jumlah - i - 1; j++) {
+            if (dataPenerima[j].resi > dataPenerima[j + 1].resi) {
+                tukarData(dataPenerima[j], dataPenerima[j + 1]);
+                tukar = true;
+            }
+        }
+        if (!tukar) break;
+    }
+}
+
+// MENU 5: URUTKAN NOMOR RESI
+void urutResi() {
+    if (jumlah == 0) {
+        cout << "\nData masih kosong!\n";
+        return;
+    }
+    sortResi();
+    cout << "\nNomor resi berhasil diurutkan!\n";
+    tampilData();
+}
+
+// ==========================================
+// MENU 6: BINARY SEARCH (CARI RESI)
+// ==========================================
+void cariResi() {
+    if (jumlah == 0) {
+        cout << "\nData masih kosong!\n";
+        return;
+    }
+
+    sortResi(); // Syarat binary search: data harus terurut
+    string cari = bacaTeks("\nMasukkan nomor resi: ");
+
+    int kiri = 0, kanan = jumlah - 1;
+    while (kiri <= kanan) {
+        int tengah = kiri + (kanan - kiri) / 2;
+
+        if (dataPenerima[tengah].resi == cari) {
+            Penerima p = dataPenerima[tengah];
+            cout << "\nData ditemukan!\n"
+                 << "Nama       : " << p.nama << "\n"
+                 << "Porsi      : " << p.porsi << "\n"
+                 << "Biaya      : Rp" << fixed << setprecision(0) << p.biaya << "\n"
+                 << "Skor Gizi  : " << setprecision(2) << p.skor << "%\n"
+                 << "Status     : " << (p.masalah ? "PERLU DIPERIKSA" : "SESUAI STANDAR") << "\n"
+                 << "Keterangan : " << p.keterangan << "\n";
+            return;
+        }
+        if (dataPenerima[tengah].resi < cari) kiri = tengah + 1;
+        else                                  kanan = tengah - 1;
+    }
+    cout << "\nNomor resi tidak ditemukan!\n";
+}
+
+// ==========================================
+// MENU 7: LINEAR SEARCH (CARI JENJANG)
+// ==========================================
+void cariJenjang() {
+    if (jumlah == 0) {
+        cout << "\nData masih kosong!\n";
+        return;
+    }
+
+    cout << "\n1. SD\n2. SMP\n3. SMA\n4. Posyandu\n";
+    Jenjang pilih = (Jenjang)bacaInt("Pilih jenjang: ", 1, 4);
+
+    int no = 0;
+    cetakHeader();
+    for (int i = 0; i < jumlah; i++) {
+        if (dataPenerima[i].jenjang == pilih) {
+            no++;
+            cetakBaris(dataPenerima[i], no);
+        }
+    }
+    cetakGaris();
+    if (no == 0) cout << "Data tidak ditemukan!\n";
+}
+
+// ==========================================
+// MENU 8: FILE I/O (SIMPAN LAPORAN TXT)
+// ==========================================
+void simpanLaporan() {
+    if (jumlah == 0) {
+        cout << "\nData masih kosong, tidak ada yang disimpan!\n";
+        return;
+    }
+
+    ofstream file("Laporan_MBG.txt");
+    if (!file.is_open()) {
+        cout << "Gagal menyimpan laporan!\n";
+        return;
+    }
+
+    file << "=== LAPORAN MONITORING MBG ===\n";
+    for (int i = 0; i < 128; i++) file << "-";
+    file << "\n";
+    file << left << setw(4) << "No" << setw(10) << "Resi" << setw(18) << "Nama"
+         << setw(10) << "Jenjang" << setw(11) << "NPSN/Kode" << setw(7) << "Porsi"
+         << setw(11) << "Biaya(Rp)" << setw(9) << "Skor" << setw(17) << "Status"
+         << "Keterangan\n";
+    for (int i = 0; i < 128; i++) file << "-";
+    file << "\n";
+
+    for (int i = 0; i < jumlah; i++) {
+        Penerima p = dataPenerima[i];
+        int id = (p.jenjang == POSYANDU) ? p.id.kodePosyandu : p.id.npsn;
+        file << left << setw(4) << (i + 1) << setw(10) << p.resi.substr(0, 9)
+             << setw(18) << p.nama.substr(0, 17) << setw(10) << namaJenjang[p.jenjang]
+             << setw(11) << id << setw(7) << p.porsi
+             << fixed << setprecision(0) << setw(11) << p.biaya
+             << setprecision(2) << right << setw(6) << p.skor << "%  " << left
+             << setw(17) << (p.masalah ? "PERLU DIPERIKSA" : "SESUAI STANDAR")
+             << p.keterangan << "\n";
+    }
+
+    for (int i = 0; i < 128; i++) file << "-";
+    file << "\n";
+    file.close();
+
+    cout << "\nLaporan berhasil disimpan ke Laporan_MBG.txt!\n";
+}
+
+// ==========================================
+// MENU 9: HAPUS DATA (ARRAY DINAMIS)
+// ==========================================
+void hapusData() {
+    if (jumlah == 0) {
+        cout << "\nData masih kosong, tidak ada yang dihapus!\n";
+        return;
+    }
+
+    tampilData();
+    string target = bacaTeks("\nMasukkan nomor resi yang akan dihapus: ");
+
+    int idxHapus = -1;
+    for (int i = 0; i < jumlah; i++) {
+        if (dataPenerima[i].resi == target) {
+            idxHapus = i;
+            break;
+        }
+    }
+
+    if (idxHapus == -1) {
+        cout << "\nNomor resi tidak ditemukan!\n";
+        return;
+    }
+
+    cout << "\nData yang akan dihapus: " << dataPenerima[idxHapus].nama
+         << " (" << dataPenerima[idxHapus].resi << ")\n";
+    string yakin = bacaTeks("Yakin ingin menghapus data ini? (y/n): ");
+
+    if (yakin != "y" && yakin != "Y") {
+        cout << "Penghapusan dibatalkan.\n";
+        return;
+    }
+
+    if (jumlah == 1) {
+        delete[] dataPenerima;
+        dataPenerima = nullptr;
+        jumlah = 0;
+    } else {
+        Penerima* temp = new Penerima[jumlah - 1];
+        int idxBaru = 0;
+        for (int i = 0; i < jumlah; i++) {
+            if (i != idxHapus) {
+                temp[idxBaru] = dataPenerima[i];
+                idxBaru++;
+            }
+        }
+        delete[] dataPenerima;
+        dataPenerima = temp;
+        jumlah--;
+    }
+
+    cout << "\nData berhasil dihapus!\n";
+}
+
+// ==========================================
+// PROGRAM UTAMA
 // ==========================================
 int main() {
     int pilih;
@@ -335,15 +518,25 @@ int main() {
              << "2. Tampilkan Data\n"
              << "3. Prioritas Paket Bermasalah\n"
              << "4. Urutkan Berdasarkan Porsi\n"
+             << "5. Urutkan Nomor Resi\n"
+             << "6. Cari Nomor Resi\n"
+             << "7. Cari Berdasarkan Jenjang\n"
+             << "8. Simpan Laporan TXT\n"
+             << "9. Hapus Data Penerima\n"
              << "0. Keluar\n";
 
-        pilih = bacaInt("Pilih Menu: ", 0, 4);
+        pilih = bacaInt("Pilih Menu: ", 0, 9);
 
         switch (pilih) {
             case 1: tambahData();    break;
             case 2: tampilData();    break;
             case 3: urutMasalah();   break;
             case 4: urutPorsi();     break;
+            case 5: urutResi();      break;
+            case 6: cariResi();      break;
+            case 7: cariJenjang();   break;
+            case 8: simpanLaporan(); break;
+            case 9: hapusData();     break;
             case 0: cout << "\nProgram selesai!\n"; break;
         }
     } while (pilih != 0);
