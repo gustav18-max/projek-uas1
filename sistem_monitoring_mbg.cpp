@@ -1,94 +1,330 @@
 #include <iostream>
-#include <iomanip>
 #include <string>
-#include <limits>
 #include <fstream>
+#include <iomanip>
 using namespace std;
 
-// 1. Konstanta & Array 2D Standar Gizi serta Batas Biaya
-const int JML_JENJANG = 4;
-const string NAMA_JENJANG[JML_JENJANG] = {"PAUD/TK", "SD", "SMP", "SMA/SMK"};
+// ==========================================
+// 1. ARRAY STATIS & KONSTANTA
+// ==========================================
+const int JUM_GIZI = 5;
+const float SKOR_AMAN = 90.0;
+string namaGizi[JUM_GIZI] = {"Karbohidrat", "Protein", "Lemak", "Sayuran", "Buah"};
 
-// Kolom: [0] Kalori Min (kkal), [1] Protein Min (gram), [2] Batas Biaya Maks (Rp)
-const float STANDAR_GIZI[JML_JENJANG][3] = {
-    {350.0f, 10.0f, 10000.0f}, // PAUD/TK
-    {450.0f, 12.0f, 12000.0f}, // SD
-    {600.0f, 15.0f, 15000.0f}, // SMP
-    {700.0f, 18.0f, 15000.0f}  // SMA/SMK
+// ==========================================
+// 2. ENUM
+// ==========================================
+enum Jenjang { SD = 1, SMP, SMA, POSYANDU };
+string namaJenjang[5] = {"", "SD", "SMP", "SMA", "Posyandu"};
+
+// Array 2D: Standar minimal gizi tiap jenjang {Karbo, Protein, Lemak, Sayur, Buah}
+float standarGizi[5][JUM_GIZI] = {
+    {0, 0, 0, 0, 0},          // index 0 tidak dipakai
+    {80, 50, 20, 75, 100},    // 1. SD
+    {100, 65, 25, 100, 120},  // 2. SMP
+    {120, 80, 30, 120, 150},  // 3. SMA
+    {60, 45, 18, 60, 80}      // 4. Posyandu
 };
 
-// 2. Enum, Union, dan Struct Data Penerima
-enum Jenjang { PAUD_TK = 0, SD = 1, SMP = 2, SMA_SMK = 3 };
+// Array 2D: Batas wajar biaya bahan baku per porsi {minimal, maksimal}
+float batasBiaya[5][2] = {
+    {0, 0},            // index 0 tidak dipakai
+    {7000, 8500},      // 1. SD
+    {9000, 10500},     // 2. SMP
+    {9000, 10500},     // 3. SMA
+    {7000, 8500}       // 4. Posyandu
+};
 
+// ==========================================
+// 3. UNION
+// ==========================================
 union Identitas {
-    int kodeSekolah;
-    long long npsn;
+    int npsn;
+    int kodePosyandu;
 };
 
+// ==========================================
+// 4. STRUCT
+// ==========================================
 struct Penerima {
-    int noResi;
-    Identitas id;
-    string namaSekolah;
+    string resi;
+    string nama;
     Jenjang jenjang;
-    int jumlahPorsi;
-    float kalori;
-    float protein;
-    float biayaPerPorsi;
-    float skorGizi;
-    string status;
+    Identitas id;
+    int porsi;
+    float biaya;
+    float gramasi[JUM_GIZI];
+    float skor;
+    bool masalah;
     string keterangan;
 };
 
-// 3. Pointer Array Dinamis
+// ==========================================
+// 5. ARRAY DINAMIS + POINTER
+// ==========================================
 Penerima* dataPenerima = nullptr;
-int jumlahData = 0;
+int jumlah = 0;
 
-// 4. Fungsi Bantu Validasi Input & Pertukaran Data
-int bacaInt(const string& pesan, int minVal, int maxVal) {
-    int nilai;
+// ==========================================
+// FUNGSI BANTU INPUT (VALIDASI)
+// ==========================================
+int bacaInt(string pesan, int minVal, int maxVal) {
+    int x;
     while (true) {
         cout << pesan;
-        if (cin >> nilai && nilai >= minVal && nilai <= maxVal) {
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            return nilai;
+        if (cin >> x && x >= minVal && x <= maxVal) {
+            cin.ignore(1000, '\n');
+            return x;
         }
-        cout << "Input tidak valid! Masukkan angka antara " << minVal << " - " << maxVal << ".\n";
         cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cin.ignore(1000, '\n');
+        cout << "Input tidak valid!\n";
     }
 }
 
-float bacaFloat(const string& pesan, float minVal, float maxVal) {
-    float nilai;
+float bacaFloat(string pesan, float minVal) {
+    float x;
     while (true) {
         cout << pesan;
-        if (cin >> nilai && nilai >= minVal && nilai <= maxVal) {
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            return nilai;
+        if (cin >> x && x >= minVal) {
+            cin.ignore(1000, '\n');
+            return x;
         }
-        cout << "Input tidak valid! Masukkan angka antara " << minVal << " - " << maxVal << ".\n";
         cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cin.ignore(1000, '\n');
+        cout << "Input tidak valid!\n";
     }
 }
 
-string bacaTeks(const string& pesan) {
-    string teks;
-    while (true) {
+string bacaTeks(string pesan) {
+    string s;
+    do {
         cout << pesan;
-        getline(cin, teks);
-        if (!teks.empty()) return teks;
-        cout << "Input tidak boleh kosong!\n";
-    }
+        getline(cin, s);
+        if (s == "") cout << "Tidak boleh kosong!\n";
+    } while (s == "");
+    return s;
 }
 
-void tukarData(Penerima& a, Penerima& b) {
+// Fungsi bantu tukar 2 data struct (dipakai di Sorting)
+void tukarData(Penerima &a, Penerima &b) {
     Penerima temp = a;
     a = b;
     b = temp;
 }
 
-// Kerangka Menu Sementara (akan dilengkapi di tahap berikutnya)
+// ==========================================
+// FUNGSI LOGIKA PERHITUNGAN & EVALUASI
+// ==========================================
+float hitungGizi(float g[], Jenjang j) {
+    float total = 0;
+    for (int i = 0; i < JUM_GIZI; i++) {
+        float stdMin = standarGizi[j][i];
+        float rasio = g[i] / stdMin;
+        float nilai = 0;
+
+        if (rasio < 1.0) {
+            nilai = rasio * 100.0;
+        } else if (rasio <= 1.8) {
+            nilai = 100.0;
+        } else {
+            float kelebihan = rasio - 1.8;
+            nilai = 100.0 - (kelebihan * 20.0);
+            if (nilai < 0) nilai = 0;
+        }
+        total += nilai;
+    }
+    return total / JUM_GIZI;
+}
+
+void evaluasiPaket(Penerima &p) {
+    bool adaKomponenKurang = false;
+    bool adaKomponenBerlebih = false;
+
+    for (int i = 0; i < JUM_GIZI; i++) {
+        float stdMin = standarGizi[p.jenjang][i];
+        if (p.gramasi[i] < stdMin) adaKomponenKurang = true;
+        if (p.gramasi[i] > stdMin * 1.8) adaKomponenBerlebih = true;
+    }
+
+    bool giziBermasalah = (p.skor < SKOR_AMAN) || adaKomponenBerlebih;
+    bool budgetKurang = (p.biaya < batasBiaya[p.jenjang][0]);
+    bool budgetBerlebih = (p.biaya > batasBiaya[p.jenjang][1]);
+
+    p.masalah = (giziBermasalah || budgetKurang || budgetBerlebih);
+
+    if (!p.masalah) {
+        p.keterangan = "Normal";
+    } else {
+        string ket = "";
+        if (p.skor < SKOR_AMAN && adaKomponenKurang) {
+            ket += "Gizi Kurang";
+        }
+        if (adaKomponenBerlebih) {
+            if (ket != "") ket += ", ";
+            ket += "Gizi Berlebih";
+        }
+        if (budgetKurang) {
+            if (ket != "") ket += ", ";
+            ket += "Budget Kurang";
+        }
+        if (budgetBerlebih) {
+            if (ket != "") ket += ", ";
+            ket += "Budget Berlebih";
+        }
+        p.keterangan = ket;
+    }
+}
+
+bool resiSudahAda(string resi) {
+    for (int i = 0; i < jumlah; i++) {
+        if (dataPenerima[i].resi == resi) return true;
+    }
+    return false;
+}
+
+// ==========================================
+// FUNGSI CETAK TABEL DI LAYAR
+// ==========================================
+void cetakGaris() {
+    for (int i = 0; i < 128; i++) cout << "-";
+    cout << "\n";
+}
+
+void cetakHeader() {
+    cetakGaris();
+    cout << left << setw(4) << "No" << setw(10) << "Resi" << setw(18) << "Nama"
+         << setw(10) << "Jenjang" << setw(11) << "NPSN/Kode" << setw(7) << "Porsi"
+         << setw(11) << "Biaya(Rp)" << setw(9) << "Skor" << setw(17) << "Status"
+         << "Keterangan\n";
+    cetakGaris();
+}
+
+void cetakBaris(Penerima p, int no) {
+    int id = (p.jenjang == POSYANDU) ? p.id.kodePosyandu : p.id.npsn;
+    cout << left << setw(4) << no << setw(10) << p.resi.substr(0, 9)
+         << setw(18) << p.nama.substr(0, 17) << setw(10) << namaJenjang[p.jenjang]
+         << setw(11) << id << setw(7) << p.porsi
+         << fixed << setprecision(0) << setw(11) << p.biaya
+         << setprecision(2) << right << setw(6) << p.skor << "%  " << left
+         << setw(17) << (p.masalah ? "PERLU DIPERIKSA" : "SESUAI STANDAR")
+         << p.keterangan << "\n";
+}
+
+// ==========================================
+// MENU 1: TAMBAH DATA (ARRAY DINAMIS)
+// ==========================================
+void tambahData() {
+    Penerima baru;
+    cout << "\n=== INPUT DATA MBG ===\n";
+
+    baru.resi = bacaTeks("Nomor Resi: ");
+    while (resiSudahAda(baru.resi)) {
+        cout << "Nomor resi sudah terdaftar!\n";
+        baru.resi = bacaTeks("Nomor Resi: ");
+    }
+
+    baru.nama = bacaTeks("Nama Sekolah/Instansi: ");
+
+    cout << "\nPilih Jenjang:\n1. SD\n2. SMP\n3. SMA\n4. Posyandu\n";
+    baru.jenjang = (Jenjang)bacaInt("Pilihan: ", 1, 4);
+
+    if (baru.jenjang == POSYANDU)
+        baru.id.kodePosyandu = bacaInt("Kode Posyandu: ", 0, 999999999);
+    else
+        baru.id.npsn = bacaInt("NPSN: ", 0, 999999999);
+
+    baru.porsi = bacaInt("Jumlah Porsi: ", 1, 999999999);
+    baru.biaya = bacaFloat("Biaya per Porsi: Rp", 0);
+
+    cout << "\n=== INPUT GRAMASI AKTUAL ===\n";
+    for (int i = 0; i < JUM_GIZI; i++) {
+        baru.gramasi[i] = bacaFloat(namaGizi[i] + " (gram): ", 0);
+    }
+
+    baru.skor = hitungGizi(baru.gramasi, baru.jenjang);
+    evaluasiPaket(baru);
+
+    // Perbesar ukuran array dinamis
+    Penerima* temp = new Penerima[jumlah + 1];
+    for (int i = 0; i < jumlah; i++) {
+        temp[i] = dataPenerima[i];
+    }
+    temp[jumlah] = baru;
+    jumlah++;
+
+    delete[] dataPenerima;
+    dataPenerima = temp;
+
+    cout << "\nData berhasil ditambahkan!\n";
+    cout << "Skor Gizi  : " << fixed << setprecision(2) << baru.skor << "%\n";
+    cout << "Status     : " << (baru.masalah ? "PERLU DIPERIKSA" : "SESUAI STANDAR") << "\n";
+    cout << "Keterangan : " << baru.keterangan << "\n";
+}
+
+// ==========================================
+// MENU 2: TAMPILKAN DATA
+// ==========================================
+void tampilData() {
+    if (jumlah == 0) {
+        cout << "\nBelum ada data!\n";
+        return;
+    }
+    cout << "\n=== DATA PENERIMA MBG ===\n";
+    cetakHeader();
+    for (int i = 0; i < jumlah; i++) {
+        cetakBaris(dataPenerima[i], i + 1);
+    }
+    cetakGaris();
+}
+
+// ==========================================
+// MENU 3: INSERTION SORT (PRIORITAS MASALAH)
+// ==========================================
+void urutMasalah() {
+    if (jumlah == 0) {
+        cout << "\nData masih kosong!\n";
+        return;
+    }
+
+    for (int i = 1; i < jumlah; i++) {
+        Penerima kunci = dataPenerima[i];
+        int j = i - 1;
+        while (j >= 0 && kunci.masalah && !dataPenerima[j].masalah) {
+            dataPenerima[j + 1] = dataPenerima[j];
+            j--;
+        }
+        dataPenerima[j + 1] = kunci;
+    }
+    cout << "\nPaket bermasalah berhasil diprioritaskan!\n";
+    tampilData();
+}
+
+// ==========================================
+// MENU 4: SELECTION SORT (PORSI TERBANYAK)
+// ==========================================
+void urutPorsi() {
+    if (jumlah == 0) {
+        cout << "\nData masih kosong!\n";
+        return;
+    }
+
+    for (int i = 0; i < jumlah - 1; i++) {
+        int terbesar = i;
+        for (int j = i + 1; j < jumlah; j++) {
+            if (dataPenerima[j].porsi > dataPenerima[terbesar].porsi) {
+                terbesar = j;
+            }
+        }
+        tukarData(dataPenerima[i], dataPenerima[terbesar]);
+    }
+    cout << "\nData berhasil diurutkan berdasarkan porsi!\n";
+    tampilData();
+}
+
+// ==========================================
+// PROGRAM UTAMA (SEMENTARA MENU 1-4)
+// ==========================================
 int main() {
     int pilih;
     do {
@@ -97,9 +333,19 @@ int main() {
              << "================================\n"
              << "1. Tambah Data Penerima\n"
              << "2. Tampilkan Data\n"
+             << "3. Prioritas Paket Bermasalah\n"
+             << "4. Urutkan Berdasarkan Porsi\n"
              << "0. Keluar\n";
-        pilih = bacaInt("Pilih Menu: ", 0, 2);
-        if (pilih == 0) cout << "\nProgram selesai!\n";
+
+        pilih = bacaInt("Pilih Menu: ", 0, 4);
+
+        switch (pilih) {
+            case 1: tambahData();    break;
+            case 2: tampilData();    break;
+            case 3: urutMasalah();   break;
+            case 4: urutPorsi();     break;
+            case 0: cout << "\nProgram selesai!\n"; break;
+        }
     } while (pilih != 0);
 
     delete[] dataPenerima;
